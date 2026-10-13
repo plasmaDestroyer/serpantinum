@@ -116,6 +116,9 @@ Singleton {
 
     function applyLayoutName(name) {
         let txt = (name && name !== "null") ? String(name) : "US";
+        // local: show the variant in parens, "English (US)" -> "US"
+        let m = txt.match(/\(([^)]*)\)/);
+        if (m) txt = m[1];
         root.layout = txt.substring(0, 2).toUpperCase();
         root.ready = true;
     }

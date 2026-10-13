@@ -35,15 +35,16 @@ BarModuleCard {
             fontPixelSize: rootObj.s(11)
             options: [
                 I18n.t("guide.bar.sysmon.style.wave", "Wave"),
-                I18n.t("guide.bar.sysmon.style.circle", "Circle")
+                I18n.t("guide.bar.sysmon.style.circle", "Circle"),
+                I18n.t("guide.bar.sysmon.style.pill", "Legacy") // local: pill style in SysMonFace
             ]
-            currentIndex: card.tab.sysmonStyle === "circle" ? 1 : 0
+            currentIndex: Math.max(0, ["wave", "circle", "pill"].indexOf(card.tab.sysmonStyle))
             accentColor: ThemeBackend.mauve
             baseColor: ThemeBackend.surface0
             textColor: ThemeBackend.text
             activeTextColor: ThemeBackend.crust
             onValueChanged: function(index, value) {
-                card.tab.setSysmonStyle(index === 1 ? "circle" : "wave");
+                card.tab.setSysmonStyle(["wave", "circle", "pill"][index]);
             }
         }
     }
