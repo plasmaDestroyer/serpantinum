@@ -1,14 +1,40 @@
 [config]
 reload_apps = false
 
+# local: real ANSI hues for terminals, blended toward the wallpaper (static presets keep the old templates)
+[config.custom_colors]
+red     = { color = "#e5534b", blend = true }
+green   = { color = "#57ab5a", blend = true }
+yellow  = { color = "#c69026", blend = true }
+blue    = { color = "#539bf5", blend = true }
+magenta = { color = "#b083f0", blend = true }
+cyan    = { color = "#39c5cf", blend = true }
+
 [templates.quickshell]
 input_path = "templates/serpantinum_matugen_colors.json.template"
 output_path = "~/.local/state/serpantinum/qs_colors.json"
 
 [templates.kitty]
-input_path = "templates/kitty-colors.conf.template"
+input_path = "templates/kitty-colors-ansi.conf.template"
 output_path = "~/.config/kitty/colors.conf"
 
 [templates.cava]
 input_path = "templates/cava-colors.ini.template"
 output_path = "~/.config/cava/config"
+
+[templates.hyprland]
+input_path = "templates/hyprland-colors.lua.template"
+output_path = "~/.config/hypr/config/colors.lua"
+
+[templates.ghostty]
+input_path = "templates/ghostty-colors-ansi.template"
+output_path = "~/.config/ghostty/themes/serpantinum"
+
+[templates.sddm]
+input_path = "templates/sddm-Main.qml.template"
+output_path = "~/.local/state/serpantinum/sddm-Main.qml"
+post_hook = "~/.local/bin/sddm-bg"  # reads $SERP_MATUGEN_IMAGE (set by Matugen.qml)
+
+[templates.nvim]
+input_path = "templates/nvim-scheme.json.template"
+output_path = "~/.local/state/serpantinum/nvim-scheme.json"
