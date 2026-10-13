@@ -186,7 +186,9 @@ GuideTab {
                             fillDuration: 1200
 
                             onTriggered: {
-                                let cmd = "if command -v kitty >/dev/null 2>&1; then kitty --hold bash -c 'eval \"$(curl -fsSL https://raw.githubusercontent.com/ilyamiro/serpantinum/master/install/install.sh)\"'; else ${TERM:-xterm} -hold -e bash -c 'eval \"$(curl -fsSL https://raw.githubusercontent.com/ilyamiro/serpantinum/master/install/install.sh)\"'; fi";
+                                // local: serp-update rebases local-v3 and keeps local patches; upstream install.sh would replace them
+                                let upd = "'$HOME/.local/bin/serp-update --dry-run && read -rp \"Apply update? [y/N] \" a && [ \"$a\" = y ] && $HOME/.local/bin/serp-update --deps-reviewed'";
+                                let cmd = "if command -v kitty >/dev/null 2>&1; then kitty --hold bash -c " + upd + "; else ${TERM:-xterm} -hold -e bash -c " + upd + "; fi";
                                 Quickshell.execDetached(["bash", "-c", cmd]);
                                 rootObj.dismissHost();
                             }

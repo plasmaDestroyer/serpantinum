@@ -49,6 +49,7 @@ ShellRoot {
     LockRedactor {}
 
     Launcher {}
+    Overview {}
     Clipboard {}    
 
     Polkit {}

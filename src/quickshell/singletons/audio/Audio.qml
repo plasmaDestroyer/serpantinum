@@ -93,6 +93,7 @@ Singleton {
                 if (!n || !n.audio) continue;
                 let p = n.properties;
                 if (!p || p["media.class"] !== "Stream/Output/Audio") continue;
+                if (p["node.virtual"] === "true" || p["node.virtual"] === true) continue;
                 let corked = p["pulse.corked"];
                 if (corked === "true" || corked === true) continue;
                 if (n.audio.muted || (n.audio.volume !== undefined && n.audio.volume <= 0.001)) continue;

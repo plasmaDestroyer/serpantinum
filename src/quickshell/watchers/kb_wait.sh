@@ -5,6 +5,8 @@ COMPOSITOR="$1"
 PIPE="$QS_RUN_DIR/qs_kb_wait_$$.fifo"
 mkfifo "$PIPE" 2>/dev/null
 trap 'rm -f "$PIPE"; kill $(jobs -p) 2>/dev/null; exit 0' EXIT INT TERM
+# local: open read-write so open() never blocks; a blocked open() ignores the TERM trap and leaked 300+ orphans
+exec 3<>"$PIPE"
 
 case "$COMPOSITOR" in
     niri)
@@ -25,5 +27,5 @@ case "$COMPOSITOR" in
         ;;
 esac
 
-read -r _ < "$PIPE"
+read -r -t 300 _ <&3 # ponytail: 5 min cap; no EOF on a rw fifo, so this also recovers if socat dies
 sleep 0.05
