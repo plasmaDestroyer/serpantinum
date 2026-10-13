@@ -179,6 +179,7 @@ BarFaceBase {
 
         ClickButton {
             id: kbPill
+            contentSpacing: s(8)
             property bool initAnimTrigger: root.isPreview
             height: s(root.lockLook ? 36 : (root.isCompact ? 28 : 30))
             maxWidth: s(root.isCompact ? 96 : 100)
