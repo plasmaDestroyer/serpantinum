@@ -97,10 +97,10 @@ Scope {
             "bash",
             "-c",
             root.isNiri
-                ? "layout=$(niri msg -j keyboard-layouts 2>/dev/null | jq -r '.names[.current_idx] // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'"
+                ? "layout=$(niri msg -j keyboard-layouts 2>/dev/null | jq -r '.names[.current_idx] // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; [[ \"$layout\" == *\"(\"* ]] && { layout=\"${layout##*(}\"; layout=\"${layout%%)*}\"; }; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'"
                 : (root.isSway
-                    ? "layout=$(swaymsg -t get_inputs 2>/dev/null | jq -r '[.[] | select(.type == \"keyboard\" and .xkb_active_layout_name != null)] | .[0].xkb_active_layout_name // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'"
-                    : "layout=$(LC_ALL=C hyprctl devices -j 2>/dev/null | jq -r '(.keyboards[] | select(.main == true) | .active_keymap) // .keyboards[0].active_keymap // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'")
+                    ? "layout=$(swaymsg -t get_inputs 2>/dev/null | jq -r '[.[] | select(.type == \"keyboard\" and .xkb_active_layout_name != null)] | .[0].xkb_active_layout_name // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; [[ \"$layout\" == *\"(\"* ]] && { layout=\"${layout##*(}\"; layout=\"${layout%%)*}\"; }; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'"
+                    : "layout=$(LC_ALL=C hyprctl devices -j 2>/dev/null | jq -r '(.keyboards[] | select(.main == true) | .active_keymap) // .keyboards[0].active_keymap // empty' | head -n1); [[ -z \"$layout\" || \"$layout\" == \"null\" ]] && layout=\"US\"; [[ \"$layout\" == *\"(\"* ]] && { layout=\"${layout##*(}\"; layout=\"${layout%%)*}\"; }; echo \"${layout:0:2}\" | tr '[:lower:]' '[:upper:]'")
         ]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -172,20 +172,10 @@ Scope {
 
     function lock() {
         if (rootLock.locked) return;
-        let ts = Date.now().toString();
-        let mons = [];
-        if (Quickshell.screens) {
-            for (let i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i] && Quickshell.screens[i].name) {
-                    mons.push(Quickshell.screens[i].name);
-                }
-            }
-        }
-        grimLockSnapProcess.screenNames = mons;
-        grimLockSnapProcess.timeStamp = ts;
-        grimLockSnapProcess.running = false;
-        grimLockSnapProcess.running = true;
-        grimTimeoutTimer.restart();
+        // local patch: no grim freeze-frame, so the lock shows only the wallpaper
+        // (no blurred windows). freezeTimestamp "" blanks every freeze Image.
+        root.freezeTimestamp = "";
+        root.doLock();
     }
 
     function doLock() {

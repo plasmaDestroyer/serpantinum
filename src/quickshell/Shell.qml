@@ -20,6 +20,7 @@ ShellRoot {
     WidgetRedactor {}
 
     Launcher {}
+    Overview {}
     Clipboard {}    
 
     Polkit {}

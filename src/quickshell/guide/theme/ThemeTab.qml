@@ -853,7 +853,7 @@ Item {
                         let mainQmlPath = Caching.mainQml;
                         if (mainQmlPath !== "") {
                             let escapeBash = function(str) { return String(str).replace(/(["\\$`])/g, '\\$1'); }
-                            Quickshell.execDetached(["bash", "-c", "quickshell -p \"" + escapeBash(mainQmlPath) + "\" ipc call fonts rescan"]);
+                            Quickshell.execDetached(["bash", "-c", "quickshell -p \"" + escapeBash(mainQmlPath) + "\" ipc --any-display call fonts rescan"]);
                         }
 
                         themeTabRoot.currentFontFamily = fName;

@@ -116,7 +116,7 @@ Item {
         property bool initAnimTrigger: (!barWindow || !!(root.activeTarget && root.activeTarget.isPreview))
 
         property real animValue: initAnimTrigger ? value : 0
-        Behavior on animValue { NumberAnimation { duration: 600; easing.type: Easing.OutQuint } }
+        // ponytail: snap instead of animating; a 600ms tween per poll repainted the Canvas every frame (~30% shell CPU)
 
         property real fillRatio: Math.max(0.0, Math.min(1.0, isNaN(animValue) ? 0.0 : animValue))
 

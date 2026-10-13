@@ -140,9 +140,14 @@ Item {
         return val;
     }
 
+    // Local patch: workspaces 1-10 are pinned to HDMI-A-1 and 11-20 to eDP-1
+    // (~/.config/hypr/config/workspaces.lua offset table), so the laptop bar shows 11-20 as 1-10.
+    property int wsOffset: (barWindow && barWindow.screen && barWindow.screen.name === "eDP-1") ? 10 : 0
+    property var barMonitor: (barWindow && barWindow.screen) ? Hyprland.monitorFor(barWindow.screen) : null
+
     function wsForId(id) {
         if (isNiri || isSway) return null;
-        return Hyprland.workspaces.values.find(w => w.id === id) ?? null;
+        return Hyprland.workspaces.values.find(w => w.id === id + wsOffset) ?? null;
     }
 
     function isOccupied(index) {
@@ -165,7 +170,7 @@ Item {
             swayActiveIndex = index;
             Quickshell.execDetached(["swaymsg", "workspace", "number", wsId.toString()]);
         } else {
-            Hyprland.dispatch("hl.dsp.focus({ workspace = " + wsId + " })");
+            Hyprland.dispatch("hl.dsp.focus({ workspace = " + (wsId + wsOffset) + " })");
         }
     }
 
@@ -176,9 +181,10 @@ Item {
         } else if (isSway) {
             idx = swayActiveIndex;
         } else {
-            const fw = Hyprland.focusedWorkspace;
+            // This bar's monitor, not the globally focused one
+            const fw = (barMonitor && barMonitor.activeWorkspace) ? barMonitor.activeWorkspace : Hyprland.focusedWorkspace;
             if (!fw) return -1;
-            idx = fw.id - 1;
+            idx = fw.id - 1 - wsOffset;
         }
         return idx >= 0 ? idx : -1;
     }

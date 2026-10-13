@@ -202,7 +202,8 @@ Item {
         interval: 200
         repeat: false
         onTriggered: {
-            Quickshell.execDetached(["systemctl", "suspend"]);
+            // local patch: on AC skip suspend (lock + dpms still run) so ssh keeps working
+            Quickshell.execDetached(["sh", "-c", "[ \"$(cat /sys/class/power_supply/AC0/online)\" = 1 ] || systemctl suspend"]);
         }
     }
 

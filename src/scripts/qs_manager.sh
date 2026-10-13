@@ -16,9 +16,9 @@ SUBTARGET="$3"
 
 send_qs_ipc() {
     if [[ -n "$MAIN_QML" ]]; then
-        quickshell -p "$MAIN_QML" ipc call main handleCommand "$@" >/dev/null 2>&1
+        quickshell -p "$MAIN_QML" ipc --any-display call main handleCommand "$@" >/dev/null 2>&1
     else
-        quickshell ipc call main handleCommand "$@" >/dev/null 2>&1
+        quickshell ipc --any-display call main handleCommand "$@" >/dev/null 2>&1
     fi
 }
 

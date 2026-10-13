@@ -328,7 +328,7 @@ if [[ "$1" == "ipc" ]]; then
     fi
 
     shift
-    exec quickshell -p "$SHELL_QML" ipc "$@"
+    exec quickshell -p "$SHELL_QML" ipc --any-display "$@"
 fi
 
 ALLOWED_SCRIPTS=(
