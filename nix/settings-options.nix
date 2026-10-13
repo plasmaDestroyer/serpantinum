@@ -40,6 +40,8 @@ let
     position = mkOpt (types.enum [ "left" "right" "top" "bottom" ]) "Which screen edge the bar docks to.";
     width = mkOpt types.ints.positive "Bar thickness in pixels or percentage.";
     opacity = mkOpt (types.ints.between 0 100) "Bar background opacity, 0-100.";
+    scale = mkOpt types.number "Scale of the whole bar (modules, icons, text), 0.75-1.5 (default 1.0).";
+    margin = mkOpt types.ints.unsigned "Gap between the bar and the screen edges in pixels (default 4).";
     style = mkOpt (types.enum [ "solid" "fill" "modular" ]) "Bar visual style.";
     distinctPills = mkOpt types.bool "Render distinct background pills for bar modules in solid/fill style.";
     autohide = mkOpt types.bool "Auto-hide the bar when not in use.";

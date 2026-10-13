@@ -185,6 +185,7 @@ Item {
 
         ClickButton {
             id: volPill
+            contentSpacing: s(8)
             property bool initAnimTrigger: root.isPreview
             property bool isActive: root.isSoundActive
 

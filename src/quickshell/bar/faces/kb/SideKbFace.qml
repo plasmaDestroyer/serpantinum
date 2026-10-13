@@ -186,6 +186,7 @@ Item {
 
     ClickButton {
         id: kbBtn
+        contentSpacing: s(8)
         visible: root.kbStyle !== "text"
         anchors.centerIn: parent
         width: s(root.isCompact ? 28 : 30)
