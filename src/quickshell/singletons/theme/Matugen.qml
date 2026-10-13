@@ -297,6 +297,7 @@ Item {
                 } else {
                     Quickshell.execDetached(["bash", "-c", "killall -USR1 .kitty-wrapped 2>/dev/null || pkill -SIGUSR1 kitty 2>/dev/null || true"]);
                 }
+                Quickshell.execDetached(["bash", "-c", "pkill -USR2 -x ghostty 2>/dev/null; true"]); // local: ghostty theme reload
             }
 
             root._currentReqType = "";

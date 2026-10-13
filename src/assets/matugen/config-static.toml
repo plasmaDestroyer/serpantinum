@@ -12,3 +12,16 @@ output_path = "~/.config/cava/config"
 [templates.fastfetch]
 input_path = "templates/fastfetch.jsonc.template"
 output_path = "~/.config/fastfetch/config.jsonc"
+
+[templates.hyprland]
+input_path = "templates/hyprland-colors.lua.template"
+output_path = "~/.config/hypr/config/colors.lua"
+
+[templates.ghostty]
+input_path = "templates/ghostty-colors.template"
+output_path = "~/.config/ghostty/themes/serpantinum"
+
+[templates.sddm]
+input_path = "templates/sddm-Main.qml.template"
+output_path = "~/.local/state/serpantinum/sddm-Main.qml"
+post_hook = "~/.local/bin/sddm-bg '{{image}}'"
