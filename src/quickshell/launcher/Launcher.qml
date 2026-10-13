@@ -294,12 +294,10 @@ PanelWindow {
 
     property real barHeight: {
         let dummy = configRevision;
-        let v = (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar && Config.rawSettings.bar.height !== undefined) ? Number(Config.rawSettings.bar.height) : 40;
-        if (isNaN(v)) v = 40;
-        return Math.round(s(Math.max(28, Math.min(48, v))));
+        return Math.round(s(Config.barThickness * Config.barScale));
     }
 
-    property real barInset: barHeight + (barStyle === "solid" && !barAutohide ? Math.round(s(4)) : 0)
+    property real barInset: barHeight + (barStyle === "solid" && !barAutohide ? Math.round(s(Config.barMargin)) : 0)
 
     property bool isBarAttachable: barStyle === "solid" || barStyle === "fill"
     property bool barMatchesLauncher: isBarAttachable && (attachEdge === barPosition) && !isBarEffectivelyHidden

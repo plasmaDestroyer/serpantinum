@@ -150,26 +150,24 @@ PanelWindow {
 
     property real barHeight: {
         let dummy = configRevision;
-        let v = (rawBarSettings && rawBarSettings.height !== undefined) ? Number(rawBarSettings.height) : 40;
-        if (isNaN(v)) v = 40;
-        return Math.round(s(Math.max(28, Math.min(48, v))));
+        return Math.round(s(Config.barThickness * Config.barScale));
     }
 
-    property real barInset: barHeight + (barStyle === "solid" && !barAutohide ? Math.round(s(4)) : 0)
+    property real barInset: barHeight + (barStyle === "solid" && !barAutohide ? Math.round(s(Config.barMargin)) : 0)
 
     readonly property bool isSolid: barStyle === "solid" || barStyle === "fill"
     property real cornerRadius: Math.min(ThemeBackend.borderRadius || s(12), s(28))
 
     readonly property bool isSideBar: barPosition === "left" || barPosition === "right"
     readonly property real modularGap: isSolid ? 0 : Math.round(s(10))
-    readonly property real edgeOffset: (isBarEffectivelyHidden ? 0 : barInset) + modularGap
+    readonly property real edgeOffset: (isBarEffectivelyHidden ? 0 : barInset + (!isSolid ? Math.round(s(Config.barMargin)) - Math.round(s(4)) : 0)) + modularGap
 
     readonly property var barWin: dashboardWindow.screen ? ShellSurfaces.bars[dashboardWindow.screen.name] : null
     readonly property bool hasBarSpan: barWin ? (isSideBar ? barWin.currentBarMaxY > barWin.currentBarMinY : barWin.currentBarMaxX > barWin.currentBarMinX) : false
     readonly property real spanOrigin: barWin ? (isSideBar ? barWin.margins.top : barWin.margins.left) : 0
     readonly property real spanStart: hasBarSpan ? spanOrigin + (isSideBar ? barWin.currentBarMinY : barWin.currentBarMinX) : 0
     readonly property real spanEnd: hasBarSpan ? spanOrigin + (isSideBar ? barWin.currentBarMaxY : barWin.currentBarMaxX) : (isSideBar ? height : width)
-    readonly property real barEndRadius: Math.min(barStyle === "fill" ? s(12) : ThemeBackend.borderRadius, barHeight / 2)
+    readonly property real barEndRadius: Math.min(barStyle === "fill" ? Math.round(s(12 * Config.barScale)) : ThemeBackend.borderRadius, barHeight / 2)
     readonly property real spanInset: barEndRadius + cornerRadius
     readonly property real panelLength: isSideBar ? panel.fullHeight : panel.fullWidth
     readonly property bool fitsBar: isSolid && cornerRadius > 0.5 && panelLength <= spanEnd - spanStart - 2 * spanInset
@@ -200,7 +198,7 @@ PanelWindow {
     Item {
         id: topBarHole
 
-        property int barThickness: dashboardWindow.barInset
+        property int barThickness: dashboardWindow.barHeight + (dashboardWindow.barStyle === "fill" ? 0 : Math.round(dashboardWindow.s(Config.barMargin)))
         property string bp: dashboardWindow.barPosition
         property bool activeBar: !dashboardWindow.isBarEffectivelyHidden
 
