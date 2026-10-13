@@ -213,7 +213,8 @@ Item {
         interval: 200
         repeat: false
         onTriggered: {
-            Quickshell.execDetached(["systemctl", "suspend"]);
+            // Suspend only on a known discharging battery; AC and unknown state keep SSH available.
+            if (SysData.onBattery) Quickshell.execDetached(["systemctl", "suspend"]);
         }
     }
 

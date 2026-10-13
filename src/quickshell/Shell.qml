@@ -45,6 +45,8 @@ ShellRoot {
     }
 
     Main {}
+    // local: before Bar, so the overview's under-bar strip maps first and stays below the bar
+    Overview {}
     Bar {}
     Lock {}
     WidgetRedactor {}

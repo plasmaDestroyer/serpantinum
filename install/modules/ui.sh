@@ -505,7 +505,6 @@ run_installer_ui() {
             items+=("2. $COMP_MENU_ITEM")
             items+=("3. $(t "installer.ui.menu_sddm") $S_SDDM")
             items+=("4. $(t "installer.ui.menu_wallpapers") $S_WP")
-            items+=("5. $(t "installer.ui.menu_telemetry") $S_TEL")
 
             if [[ "$INSTALL_STATE" == "current" ]]; then
                 items+=("6. ${BOLD}${C_GREEN}$(t "installer.ui.menu_update")${RESET}")
