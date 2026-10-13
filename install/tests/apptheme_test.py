@@ -178,6 +178,71 @@ class Sandbox(unittest.TestCase):
         return f.read_text().strip() if f.exists() else "'default'"
 
 
+class TerminalPaletteTests(Sandbox):
+    def assert_terminal_slots(self, palette, roles):
+        self.install("kitty", "ghostty")
+        self.ctx.palette.write_bytes(palette)
+        result = self.apply(["kitty", "ghostty"], force=True)
+        for name in ("kitty", "ghostty"):
+            self.assertTrue(result["apps"][name]["ok"], result)
+        colors = json.loads(palette)["colors"]
+        expected = [colors[role]["default"].get("hex", colors[role]["default"].get("color")) for role in roles]
+        kitty = dict(re.findall(r"^color(\d+)\s+(#[0-9a-fA-F]{6})\s*$", self.cfg("kitty/themes/serpantinum.conf").read_text(), re.M))
+        ghostty = dict(re.findall(r"^palette\s*=\s*(\d+)=(#[0-9a-fA-F]{6})\s*$", self.cfg("ghostty/themes/serpantinum").read_text(), re.M))
+        self.assertEqual([kitty[str(i)] for i in range(16)], expected)
+        self.assertEqual([ghostty[str(i)] for i in range(16)], expected)
+        self.assertEqual(self.ctx.palette.read_bytes(), palette, "Terminal fallback must not change shared palette")
+
+    def test_wallpaper_custom_ansi_hues(self):
+        config = (REPO / "src/assets/matugen/config.toml").read_text().split("[templates.", 1)[0]
+        path = self.tmp / "custom-ansi.toml"
+        path.write_text(config + "\n[templates]\n")
+        palette = subprocess.run([REAL_MATUGEN, "-c", str(path), "color", "hex", "#6750a4", "-m", "dark", "-j", "hex"],
+                                 capture_output=True, check=True).stdout
+        roles = ["surface_variant", "red", "green", "yellow", "blue", "magenta", "cyan", "on_surface_variant",
+                 "outline", "on_red_container", "on_green_container", "on_yellow_container", "on_blue_container",
+                 "on_magenta_container", "on_cyan_container", "on_surface"]
+        self.assert_terminal_slots(palette, roles)
+
+    def test_static_presets_keep_original_terminal_slots(self):
+        roles = ["surface_variant", "error", "primary", "tertiary", "secondary", "primary_container", "secondary_container",
+                 "on_surface_variant", "outline", "error_container", "primary_fixed", "tertiary_fixed", "secondary_fixed",
+                 "inverse_primary", "tertiary_container", "on_surface"]
+        if not REAL_NODE:
+            self.skipTest("node is not available")
+        for mode, preset in (("dark", "Ayu Dark.json"), ("light", "Latte.json")):
+            with self.subTest(mode=mode):
+                self.assert_terminal_slots(static_palette(THEMES / preset, mode), roles)
+
+    def test_palette_aliases_do_not_depend_on_terminal_batch(self):
+        self.install("kitty", "gtk3-demo")
+        target = self.ctx.user_dir / "gtk"
+        shutil.copytree(BUILTIN / "gtk", target)
+        data = json.loads((target / "app.json").read_text())
+        data["templates"].append({"input": "ansi-probe", "output": "$XDG_CONFIG_HOME/gtk-3.0/ansi-probe"})
+        (target / "app.json").write_text(json.dumps(data))
+        (target / "ansi-probe").write_text("{{colors.red.default.hex}}")
+        for enabled in (["gtk", "kitty"], ["gtk"]):
+            with self.subTest(enabled=enabled):
+                result = self.apply(enabled, force=True)
+                self.assertTrue(result["apps"]["gtk"]["ok"], result)
+                expected = json.loads(self.ctx.palette.read_bytes())["colors"]["error"]["default"]["color"]
+                self.assertEqual(self.cfg("gtk-3.0/ansi-probe").read_text(), expected)
+
+    def test_no_duplicate_terminal_writer(self):
+        config = tomllib.loads((REPO / "src/assets/matugen/config.toml").read_text())
+        self.assertNotIn("kitty", config["templates"])
+        self.assertNotIn("ghostty", config["templates"])
+        self.assertNotIn("pkill -USR2 -x ghostty", MATUGEN_QML.read_text())
+        self.install("kitty", "ghostty")
+        legacy = self.write(self.cfg("kitty/colors.conf"), "previous palette\n")
+        result = self.apply([], force=True)
+        self.assertEqual(result["apps"], {})
+        self.assertEqual(legacy.read_text(), "previous palette\n")
+        self.assertFalse(self.cfg("kitty/themes/serpantinum.conf").exists())
+        self.assertFalse(self.cfg("ghostty/themes/serpantinum").exists())
+
+
 class CatalogTests(Sandbox):
     def test_catalog_is_valid(self):
         apps = apptheme.load_apps(self.ctx)

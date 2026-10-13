@@ -1022,6 +1022,25 @@ def render(ctx, jobs, stage):
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True)
+    palette_path = ctx.palette
+    palette = read_json(ctx.palette, {})
+    colors = palette.get("colors") if isinstance(palette, dict) else None
+    if isinstance(colors, dict):
+        # Static presets lack custom ANSI roles; keep their original terminal mappings.
+        for name, role, bright in (
+            ("red", "error", "error_container"),
+            ("green", "primary", "primary_fixed"),
+            ("yellow", "tertiary", "tertiary_fixed"),
+            ("blue", "secondary", "secondary_fixed"),
+            ("magenta", "primary_container", "inverse_primary"),
+            ("cyan", "secondary_container", "tertiary_container"),
+        ):
+            if role in colors:
+                colors.setdefault(name, colors[role])
+            if bright in colors:
+                colors.setdefault("on_" + name + "_container", colors[bright])
+        palette_path = stage / "palette.json"
+        palette_path.write_text(json.dumps(palette), encoding="utf-8")
     config = ["[config]", ""]
     for job in jobs:
         config.append("[templates." + toml_str(job["key"]) + "]")
@@ -1032,7 +1051,7 @@ def render(ctx, jobs, stage):
     config_path.write_text("\n".join(config), encoding="utf-8")
     try:
         proc = subprocess.run(
-            [ctx.matugen, "-c", str(config_path), "json", str(ctx.palette)],
+            [ctx.matugen, "-c", str(config_path), "json", str(palette_path)],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=MATUGEN_TIMEOUT,

@@ -313,6 +313,8 @@ Item {
     Process {
         id: matugenProcess
         running: false
+        // local: image path for post_hooks via env, never spliced into a shell string
+        environment: ({ SERP_MATUGEN_IMAGE: root._currentImagePath })
         property string reqType: ""
 
         onExited: (exitCode) => {
