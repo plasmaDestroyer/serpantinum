@@ -297,6 +297,8 @@ Item {
     Process {
         id: matugenProcess
         running: false
+        // local: image path for post_hooks via env, never spliced into a shell string
+        environment: ({ SERP_MATUGEN_IMAGE: root._currentImagePath })
         property string reqType: ""
 
         onExited: (exitCode) => {
@@ -314,6 +316,7 @@ Item {
                     Quickshell.execDetached(["bash", "-c", "cp -f \"$1/qs_colors.json\" \"$1/qs_matugen_colors.json\" 2>/dev/null || true", "_", root.stateDir]);
                 }
                 AppTheming.apply();
+                Quickshell.execDetached(["bash", "-c", "pkill -USR2 -x ghostty 2>/dev/null; true"]); // local: ghostty theme reload
             }
 
             root._currentReqType = "";
