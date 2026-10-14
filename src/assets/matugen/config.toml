@@ -38,3 +38,7 @@ output_path = "~/.config/ghostty/themes/serpantinum"
 input_path = "templates/sddm-Main.qml.template"
 output_path = "~/.local/state/serpantinum/sddm-Main.qml"
 post_hook = "~/.local/bin/sddm-bg '{{image}}'"
+
+[templates.nvim]
+input_path = "templates/nvim-scheme.json.template"
+output_path = "~/.local/state/serpantinum/nvim-scheme.json"
