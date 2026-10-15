@@ -9,10 +9,6 @@ output_path = "~/.config/kitty/colors.conf"
 input_path = "templates/cava-colors.ini.template"
 output_path = "~/.config/cava/config"
 
-[templates.fastfetch]
-input_path = "templates/fastfetch.jsonc.template"
-output_path = "~/.config/fastfetch/config.jsonc"
-
 [templates.hyprland]
 input_path = "templates/hyprland-colors.lua.template"
 output_path = "~/.config/hypr/config/colors.lua"
