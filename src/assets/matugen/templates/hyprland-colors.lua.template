@@ -16,4 +16,8 @@ hl.config({
             color        = "rgba({{colors.inverse_primary.default.hex_stripped}}10)",
         },
     },
+    misc = {
+        -- shown for the moment between login and the shell's wallpaper
+        background_color = "rgb({{colors.surface.default.hex_stripped}})",
+    },
 })
