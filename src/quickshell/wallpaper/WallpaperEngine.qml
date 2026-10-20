@@ -268,6 +268,7 @@ ShellRoot {
 
                 function triggerTransition() {
                     videoWarmUpTimer.stop();
+                    barWindow.isInitialLoad = false;
                     barWindow.isPreloading = false;
                     transitionAnim.restart();
                 }
@@ -331,25 +332,6 @@ ShellRoot {
                         barWindow.originalFileName = filename;
                     }
 
-                    if (barWindow.isInitialLoad) {
-                        barWindow.isInitialLoad = false;
-                        barWindow.transitionProgress = 1.0;
-                        barWindow.isPreloading = false;
-                        if (barWindow.activeLayer === 1) {
-                            barWindow.pathA = cleanPath;
-                            barWindow.isVideoA = vid;
-                            barWindow.activeLayer = 0;
-                            if (vid) barWindow.playA();
-                        } else {
-                            barWindow.pathB = cleanPath;
-                            barWindow.isVideoB = vid;
-                            barWindow.activeLayer = 1;
-                            if (vid) barWindow.playB();
-                        }
-                        barWindow.currentWallpaperPath = cleanPath;
-                        return;
-                    }
-
                     transitionAnim.stop();
                     videoWarmUpTimer.stop();
                     barWindow.transitionProgress = 0.0;
@@ -362,7 +344,7 @@ ShellRoot {
                         if (vid) {
                             barWindow.playA();
                             videoWarmUpTimer.restart();
-                        } else {
+                        } else if (!barWindow.isInitialLoad || imgA.status === Image.Ready) {
                             barWindow.triggerTransition();
                         }
                     } else {
@@ -372,7 +354,7 @@ ShellRoot {
                         if (vid) {
                             barWindow.playB();
                             videoWarmUpTimer.restart();
-                        } else {
+                        } else if (!barWindow.isInitialLoad || imgB.status === Image.Ready) {
                             barWindow.triggerTransition();
                         }
                     }
@@ -636,6 +618,10 @@ ShellRoot {
                             asynchronous: true
                             visible: !barWindow.isVideoA && barWindow.pathA !== ""
                             cache: true
+                            onStatusChanged: {
+                                if (status === Image.Ready && barWindow.isInitialLoad && barWindow.isPreloading && barWindow.activeLayer === 0)
+                                    barWindow.triggerTransition();
+                            }
                             sourceSize.width: parent.width > 0 ? Math.ceil(parent.width * (Screen.devicePixelRatio || 1)) : 0
                             sourceSize.height: parent.height > 0 ? Math.ceil(parent.height * (Screen.devicePixelRatio || 1)) : 0
                         }
@@ -703,6 +689,10 @@ ShellRoot {
                             asynchronous: true
                             visible: !barWindow.isVideoB && barWindow.pathB !== ""
                             cache: true
+                            onStatusChanged: {
+                                if (status === Image.Ready && barWindow.isInitialLoad && barWindow.isPreloading && barWindow.activeLayer === 1)
+                                    barWindow.triggerTransition();
+                            }
                             sourceSize.width: parent.width > 0 ? Math.ceil(parent.width * (Screen.devicePixelRatio || 1)) : 0
                             sourceSize.height: parent.height > 0 ? Math.ceil(parent.height * (Screen.devicePixelRatio || 1)) : 0
                         }
