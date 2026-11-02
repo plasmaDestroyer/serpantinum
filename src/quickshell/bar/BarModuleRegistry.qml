@@ -94,6 +94,12 @@ QtObject {
             defaultVariant: "default",
             face: "faces/tray/TrayFace.qml"
         },
+        "airdrop": {
+            name: typeof I18n !== "undefined" ? I18n.t("guide.bar.modules.airdrop", "AirDrop") : "AirDrop",
+            icon: "󰀃",
+            defaultVariant: "default",
+            face: "faces/airdrop/AirdropFace.qml"
+        },
         "timedate": {
             name: typeof I18n !== "undefined" ? I18n.t("guide.bar.modules.timedate.name", "Time & Date") : "Time & Date",
             icon: "󰃰",

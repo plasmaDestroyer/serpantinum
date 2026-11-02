@@ -379,6 +379,7 @@
         },
         "info": "Recording/timer",
         "weather": "Weather",
+        "airdrop": "AirDrop",
         "notifications": "Notifications",
         "usage": "System usage",
         "clock": "Clock"
