@@ -366,7 +366,8 @@ remove_settings_desktop_entry() {
     fi
 }
 
-deploy_package() {
+deploy_package() (
+    set -e
     local REPO_ROOT="$1"
     local OLD_COMMIT="$2"
     local NEW_COMMIT="$3"
@@ -375,8 +376,20 @@ deploy_package() {
     shift 5
     local COMPOSITORS=("$@")
 
-    local TARGET_BASE="$HOME/.local/share/serpantinum"
+    local LIVE_BASE="$HOME/.local/share/serpantinum"
     local BIN_DIR="$HOME/.local/bin"
+    local TARGET_BASE stage previous=""
+
+    # x86_64 installs stage the pinned daemons first (bundle_daemons); elsewhere they stay global.
+    if [ -n "${BUNDLE_DIR:-}" ] && [ -z "$(ls -A "$BUNDLE_DIR/bin" 2>/dev/null)" ]; then
+        echo "Stage the matching daemon bundle before deploying Serpantinum." >&2
+        return 1
+    fi
+    mkdir -p "$(dirname "$LIVE_BASE")"
+    stage=$(mktemp -d "$(dirname "$LIVE_BASE")/.serpantinum-stage.XXXXXX")
+    TARGET_BASE="$stage"
+    trap 'if [ ! -e "$LIVE_BASE" ] && [ -n "$previous" ]; then mv -T -- "$previous" "$LIVE_BASE"; fi; rm -rf -- "$stage"' EXIT
+    trap 'exit 1' HUP INT TERM
 
     local is_update=false
     if [[ "$INSTALL_STATE" == "current" && "$IS_REINSTALL" != "true" ]]; then
@@ -385,26 +398,26 @@ deploy_package() {
 
     local do_full_deploy=true
 
-    if [ "$IS_REINSTALL" != "true" ] && [ -n "$OLD_COMMIT" ] && [ "$OLD_COMMIT" != "unknown" ] && [ -d "$REPO_ROOT/.git" ]; then
+    if [ -d "$LIVE_BASE" ] && [ "$IS_REINSTALL" != "true" ] && [ -n "$OLD_COMMIT" ] && [ "$OLD_COMMIT" != "unknown" ] && [ -d "$REPO_ROOT/.git" ]; then
         if git -C "$REPO_ROOT" cat-file -e "$OLD_COMMIT" 2>/dev/null; then
             do_full_deploy=false
         fi
     fi
 
+    # Copy a complete runtime even when only configuration needs a Git diff.
+    mkdir -p "$TARGET_BASE/bin" "$TARGET_BASE/src" "$BIN_DIR"
+
+    if [ -d "$REPO_ROOT/bin" ] && [ "$(ls -A "$REPO_ROOT/bin" 2>/dev/null)" ]; then
+        cp -r "$REPO_ROOT/bin/." "$TARGET_BASE/bin/"
+        chmod +x "$TARGET_BASE/bin/"* 2>/dev/null || true
+    fi
+
+    if [ -d "$REPO_ROOT/src" ] && [ "$(ls -A "$REPO_ROOT/src" 2>/dev/null)" ]; then
+        cp -r "$REPO_ROOT/src/." "$TARGET_BASE/src/"
+        find "$TARGET_BASE/src/scripts" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+    fi
+
     if [ "$do_full_deploy" = true ]; then
-        rm -rf "$TARGET_BASE"
-        mkdir -p "$TARGET_BASE/bin" "$TARGET_BASE/src" "$BIN_DIR"
-
-        if [ -d "$REPO_ROOT/bin" ] && [ "$(ls -A "$REPO_ROOT/bin" 2>/dev/null)" ]; then
-            cp -r "$REPO_ROOT/bin/." "$TARGET_BASE/bin/"
-            chmod +x "$TARGET_BASE/bin/"* 2>/dev/null || true
-        fi
-
-        if [ -d "$REPO_ROOT/src" ] && [ "$(ls -A "$REPO_ROOT/src" 2>/dev/null)" ]; then
-            cp -r "$REPO_ROOT/src/." "$TARGET_BASE/src/"
-            find "$TARGET_BASE/src/scripts" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-        fi
-
         if [ "$is_update" != "true" ]; then
             for cfg in "${EXTRA_CONFIGS[@]}"; do
                 local src_cfg="$REPO_ROOT/config/$cfg"
@@ -461,8 +474,6 @@ deploy_package() {
             done
         fi
     else
-        mkdir -p "$TARGET_BASE/bin" "$TARGET_BASE/src" "$BIN_DIR"
-
         local changed_files=""
         local deleted_files=""
 
@@ -474,11 +485,7 @@ deploy_package() {
         if [ -n "$deleted_files" ]; then
             while IFS= read -r file; do
                 [[ -z "$file" ]] && continue
-                if [[ "$file" == bin/* ]]; then
-                    rm -f "$TARGET_BASE/$file"
-                elif [[ "$file" == src/* ]]; then
-                    rm -f "$TARGET_BASE/$file"
-                elif [[ "$file" == config/* ]]; then
+                if [[ "$file" == config/* ]]; then
                     if [ "$is_update" != "true" ]; then
                         local rel_cfg="${file#config/}"
                         local cfg_name="${rel_cfg%%/*}"
@@ -513,17 +520,7 @@ deploy_package() {
         if [ -n "$changed_files" ]; then
             while IFS= read -r file; do
                 [[ -z "$file" ]] && continue
-                if [[ "$file" == bin/* ]]; then
-                    mkdir -p "$(dirname "$TARGET_BASE/$file")"
-                    cp "$REPO_ROOT/$file" "$TARGET_BASE/$file"
-                    chmod +x "$TARGET_BASE/$file" 2>/dev/null || true
-                elif [[ "$file" == src/* ]]; then
-                    mkdir -p "$(dirname "$TARGET_BASE/$file")"
-                    cp "$REPO_ROOT/$file" "$TARGET_BASE/$file"
-                    if [[ "$file" == *.sh ]]; then
-                        chmod +x "$TARGET_BASE/$file" 2>/dev/null || true
-                    fi
-                elif [[ "$file" == config/* ]]; then
+                if [[ "$file" == config/* ]]; then
                     if [ "$is_update" != "true" ]; then
                         local rel_cfg="${file#config/}"
                         local cfg_name="${rel_cfg%%/*}"
@@ -563,6 +560,32 @@ deploy_package() {
         cp "$REPO_ROOT/version.txt" "$TARGET_BASE/src/version.txt"
     fi
 
+    if [ -n "${BUNDLE_DIR:-}" ]; then
+        cp -a "$BUNDLE_DIR/bin/." "$TARGET_BASE/bin/"
+        mkdir -p "$TARGET_BASE/licenses"
+        cp -a "$BUNDLE_DIR/licenses/." "$TARGET_BASE/licenses/"
+    fi
+
+    # Keep the entire previous runtime (shell + daemons); restore it if activation fails.
+    if [ -e "$LIVE_BASE" ] || [ -L "$LIVE_BASE" ]; then
+        previous="$stage.previous"
+        if mv --exchange -T -- "$stage" "$LIVE_BASE" 2>/dev/null; then
+            # One rename(2) swap: the live path never goes missing, even if the installer is killed here.
+            mv -T -- "$stage" "$previous" || previous="$stage"
+            stage=""  # now holds the previous runtime; the EXIT trap must not delete it
+        else
+            # ponytail: coreutils < 9.5 or no RENAME_EXCHANGE: two renames, a short gap without a runtime
+            mv -T -- "$LIVE_BASE" "$previous"
+            mv -T -- "$stage" "$LIVE_BASE"
+        fi
+    else
+        mv -T -- "$stage" "$LIVE_BASE"
+    fi
+    TARGET_BASE="$LIVE_BASE"
+    if [ -n "$previous" ]; then
+        echo "Previous Serpantinum runtime: $previous"
+    fi
+
     if [ -f "$TARGET_BASE/bin/serpantinum" ]; then
         ln -sf "$TARGET_BASE/bin/serpantinum" "$BIN_DIR/serpantinum"
         sudo ln -sf "$TARGET_BASE/bin/serpantinum" /usr/local/bin/serpantinum 2>/dev/null || true
@@ -576,4 +599,4 @@ deploy_package() {
     remove_settings_desktop_entry
 
     setup_pam_service
-}
+)

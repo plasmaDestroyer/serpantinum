@@ -56,6 +56,7 @@ source "$MODULES_DIR/daemons.sh"
 source "$MODULES_DIR/audio.sh"
 source "$MODULES_DIR/gamma.sh"
 source "$MODULES_DIR/core.sh"
+source "$MODULES_DIR/bundle.sh"
 source "$MODULES_DIR/state.sh"
 source "$MODULES_DIR/migrate.sh"
 source "$MODULES_DIR/deploy.sh"
@@ -97,11 +98,25 @@ fi
 
 install_dependencies "$INSTALL_STATE" "$IS_REINSTALL" "${SELECTED_COMPOSITORS[@]}"
 install_ski
-install_audio_daemon
-install_gamma_daemon
-install_core_daemon
+if [ "$(uname -m)" = x86_64 ]; then
+    # Pinned core, audio and gamma go inside the runtime and switch together with the shell.
+    BUNDLE_DIR=$(mktemp -d)
+    trap 'rm -rf -- "$BUNDLE_DIR"' EXIT
+    bundle_daemons "$PROJECT_ROOT" "$BUNDLE_DIR" || { echo -e "\e[31m[ FAILED ]\e[0m Cannot prepare the bundled daemons; nothing was changed." >&2; exit 1; }
+else
+    install_audio_daemon
+    install_gamma_daemon
+    install_core_daemon
+fi
 
 deploy_package "$PROJECT_ROOT" "$OLD_COMMIT" "$TARGET_COMMIT" "$IS_REINSTALL" "$INSTALL_STATE" "${SELECTED_COMPOSITORS[@]}"
+# The launchers put the runtime first in PATH; do the same for the restarts and hand-over below.
+export PATH="$HOME/.local/share/serpantinum/bin:$PATH"
+hash -r
+if [ -n "${BUNDLE_DIR:-}" ]; then
+    restart_daemon_if_running serpantinum-audio '(^|/)serpantinum-audio daemon$' ctl quit
+    restart_daemon_if_running serpantinum-core '(^|/)serpantinum-core$' quit
+fi
 setup_sddm "$PROJECT_ROOT" "$INSTALL_STATE" "$IS_REINSTALL"
 install_wallpapers "$INSTALL_FULL_WALLPAPERS"
 

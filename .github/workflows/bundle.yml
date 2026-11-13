@@ -1,0 +1,39 @@
+name: Build Serpantinum bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check bundle installation
+        run: python3 install/tests/daemon_bundle_test.py
+      - name: Build shell and pinned daemon archive
+        run: bash packaging/bundle.sh
+      - name: Check bundled core on a private session bus
+        run: |
+          work=$(mktemp -d)
+          trap 'rm -rf -- "$work"' EXIT
+          tar -xzf dist/serpantinum-*-x86_64-linux.tar.gz -C "$work"
+          export BUNDLE_CORE="$work/serpantinum-$(tr -d '[:space:]' < version.txt)-x86_64-linux/bin/serpantinum-core"
+          export XDG_DATA_HOME="$work/data" XDG_STATE_HOME="$work/state" XDG_CACHE_HOME="$work/cache"
+          dbus-run-session -- bash -euo pipefail <<'SH'
+          trap '"$BUNDLE_CORE" quit >/dev/null 2>&1 || true' EXIT
+          "$BUNDLE_CORE" start
+          "$BUNDLE_CORE" sysinfo | python3 -c 'import json, sys; d = json.load(sys.stdin); assert all(k in d for k in ("cpu", "ramPercent", "temp", "diskPercent"))'
+          "$BUNDLE_CORE" quit
+          "$BUNDLE_CORE" start
+          SH
+      - uses: actions/upload-artifact@v4
+        with:
+          name: serpantinum-x86_64-linux
+          path: dist/*
+          if-no-files-found: error

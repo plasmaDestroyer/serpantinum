@@ -74,6 +74,11 @@ account     include      system-auth
 EOF
 
     cp -a "$srcdir/usr/." "$pkgdir/usr/"
+    # Daemons live beside the shell that pins them; /usr/bin keeps a link for other callers.
+    for daemon in serpantinum-core serpantinum-audio serpantinum-gamma; do
+        mv "$pkgdir/usr/bin/$daemon" "$share/bin/$daemon"
+        ln -s "../share/serpantinum/bin/$daemon" "$pkgdir/usr/bin/$daemon"
+    done
 
     install -Dm644 /dev/stdin "$pkgdir/etc/xdg/xdg-desktop-portal/portals.conf" <<'EOF'
 [preferred]

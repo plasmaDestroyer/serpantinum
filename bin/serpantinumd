@@ -3,6 +3,7 @@
 VERBOSE=false
 
 BIN_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+export PATH="$BIN_DIR:$PATH"
 if [ -z "$SERPANTINUM_DIR" ]; then
     export SERPANTINUM_DIR="$(dirname "$BIN_DIR")/src"
 fi
@@ -151,9 +152,9 @@ if [ "$COMMAND" == "stop" ]; then
     if [ -n "$MAIN_QML" ]; then
         pkill -KILL -f "quickshell.*$MAIN_QML" 2>/dev/null
     fi
+    timeout 5 serpantinum-core quit >/dev/null 2>&1 || true
     pkill -TERM -f "wl-paste --watch echo 1" 2>/dev/null
     bash "$SERPANTINUM_DIR/scripts/gamma.sh" stop >/dev/null 2>&1
-    command -v serpantinum-core >/dev/null 2>&1 && serpantinum-core quit >/dev/null 2>&1
     command -v serpantinum-audio >/dev/null 2>&1 && serpantinum-audio ctl quit >/dev/null 2>&1
 
     rm -f "/tmp/serpantinumd.pid" 2>/dev/null
@@ -218,6 +219,13 @@ if [ "$COMMAND" == "start" ]; then
         fi
     fi
 
+    # Replace a core left by the previous runtime before starting any watchers. Only a bundled core is
+    # required to start; a global one (other arches) stays D-Bus activated, as upstream.
+    if [ -x "$BIN_DIR/serpantinum-core" ] && { ! timeout 5 serpantinum-core quit 9>&- || ! timeout 5 serpantinum-core start 9>&-; }; then
+        echo "Cannot start bundled serpantinum-core." >&2
+        exit 1
+    fi
+
     echo $$ > "/tmp/serpantinumd.pid"
 
     CLEANUP_DONE=false
@@ -252,8 +260,8 @@ if [ "$COMMAND" == "start" ]; then
             [ -n "$group" ] && kill -KILL -- "-$group" 2>/dev/null
         done
         pkill -KILL -f "serpantinum-core screentime track" 2>/dev/null
+        timeout 5 serpantinum-core quit 9>&- >/dev/null 2>&1 || true
         bash "$SERPANTINUM_DIR/scripts/gamma.sh" stop 9>&- >/dev/null 2>&1
-        command -v serpantinum-core >/dev/null 2>&1 && serpantinum-core quit 9>&- >/dev/null 2>&1
         command -v serpantinum-audio >/dev/null 2>&1 && serpantinum-audio ctl quit 9>&- >/dev/null 2>&1
 
         exec 9>&- 2>/dev/null

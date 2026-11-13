@@ -15,7 +15,7 @@ It talks to the shell over the D-Bus session bus, works on any compositor and li
 
 - The daemon starts the first time anything asks for it, and every command except `quit` starts it when it is not running. `watch` starts it again if it goes away.
 - `serpantinumd start` runs `serpantinum-core screentime track` for the digital wellbeing tab, and `serpantinumd stop` ends it.
-- The daemon can outlive a login. `serpantinum-core quit` stops it.
+- Starting the shell replaces a daemon left by a previous bundle before starting its watchers. Stopping the shell also stops core. After a crash, `serpantinum-core quit` stops any remaining daemon.
 
 ## Feeds cost nothing when unused
 
@@ -104,18 +104,38 @@ The full list of members is in the [serpantinum-core README](https://github.com/
 
 ### Installing and updating
 
-The install script downloads the latest release for `x86_64`, checks it against the published checksums and installs it to `/usr/local/bin`. On other architectures it prints a warning and leaves the shell without the core services, so build it from source there. Running the installer again updates it, and it does nothing when the installed version is already the latest.
+On `x86_64`, core, `serpantinum-audio` and `serpantinum-gamma` are part of the Serpantinum runtime rather than separately installed packages. The shell source pins each daemon's version and archive checksum in `src/assets/daemons.json`; these are the same releases and checksums the Arch packages ship. Other architectures keep the per-daemon installers (prebuilt or source builds into `/usr/local`).
 
-The Arch packages bundle a release, and the Nix flake builds it from source.
+The install script downloads those exact archives without sudo, checks each checksum and version, then stages a complete runtime (shell and daemons) in `~/.local/share`. It activates the runtime only after staging succeeds. Download, checksum or version failures stop the update before the current runtime is changed. The bundled binaries live in `~/.local/share/serpantinum/bin`; both launchers put this directory first in their child processes' `PATH`. Older global daemon binaries are left untouched. Afterwards the installer restarts a running audio or core daemon from the new runtime, as the per-daemon installers do.
+
+After updating, run `serpantinum restart` to switch the running shell and daemons to the new runtime. The installer does not restart your desktop session.
+
+The installer prints the location of the previous runtime, kept beside the active directory as `.serpantinum-stage.*.previous`. To roll back, stop the shell, move the active runtime aside, rename the recorded previous directory to `~/.local/share/serpantinum`, then start the shell. This restores the shell and its daemons together. Settings and user data remain outside the runtime; this is not a rollback of compositor configuration or other installer steps. Previous runtime copies are kept until you remove them.
+
+The Arch packages already bundle the daemons; `/usr/bin/serpantinum-core`, `-audio` and `-gamma` point to their private copies beside the shell. Nix builds the pinned versions as internal build inputs and exposes them with the shell. Neither requires users to install separate daemon packages. Nix also builds from source for `aarch64`.
+
+### Building a release archive
+
+From the Serpantinum checkout:
+
+```sh
+bash packaging/bundle.sh
+```
+
+This writes `dist/serpantinum-VERSION-x86_64-linux.tar.gz` and its `.sha256` file. The archive contains the shell, the pinned daemon binaries and licences, installer and build scripts. The daemons are downloaded and checked during the build; installing the extracted archive reuses them without another download. Other desktop dependencies still use the normal installer.
+
+The Build Serpantinum bundle workflow runs the installation checks, tests the real core on a private D-Bus session, and saves both files as an Actions artifact on version tags or manual dispatch. It does not publish a release automatically.
+
+Extract the archive and run `bash install/install.sh` from its directory. For source development, run the installer from the checkout to stage the matching pair. Updating a daemon requires changing its pin in `daemons.json` and the matching AUR and Nix checksums in the same source change; `install/tests/daemon_bundle_test.py` checks that the pins and the AUR packages agree.
 
 ### Checking the installation
 
 ```sh
-serpantinum-core --version
-serpantinum-core sysinfo
+~/.local/share/serpantinum/bin/serpantinum-core --version
+~/.local/share/serpantinum/bin/serpantinum-core sysinfo
 ```
 
-The second command should print one JSON object with your CPU, memory, temperature, network and disk usage. It starts the daemon if it is not running.
+These paths are for the script installation; Arch and Nix also expose `serpantinum-core` on `PATH`. The second command should print one JSON object with your CPU, memory, temperature, network and disk usage. It starts the daemon if it is not running.
 
 ### Optional tools
 
@@ -134,9 +154,8 @@ Any Rust toolchain with edition 2024 works. `stage.sh` lays out `usr/bin`, the D
 
 ### If something looks stuck
 
-Stop the daemon and run any command again to start a fresh one:
+Restart the shell and its bundled daemon:
 
 ```sh
-serpantinum-core quit
-serpantinum-core sysinfo
+serpantinum restart
 ```

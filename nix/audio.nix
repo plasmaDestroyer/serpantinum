@@ -6,7 +6,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "serpantinum-audio";
-  version = "0.4.0";
+  version = (builtins.fromJSON (builtins.readFile ../src/assets/daemons.json))."serpantinum-audio".version;
 
   src = fetchFromGitHub {
     owner = "ilyamiro";

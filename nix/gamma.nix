@@ -4,7 +4,7 @@
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "serpantinum-gamma";
-  version = "0.7.0";
+  version = (builtins.fromJSON (builtins.readFile ../src/assets/daemons.json))."serpantinum-gamma".version;
 
   src = fetchFromGitHub {
     owner = "ilyamiro";
